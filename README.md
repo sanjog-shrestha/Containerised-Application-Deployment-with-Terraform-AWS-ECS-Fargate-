@@ -46,7 +46,8 @@ Application Load Balancer (ALB)
 ```
 
 > 📸 **Architecture Screenshot:**
-> ![Architecture](./screenshots/architecture.png)
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/ea19aa13-c49b-4f3e-a257-343ab845128d" />
+
 
 ---
 
@@ -76,7 +77,7 @@ Application Load Balancer (ALB)
 | Memory Scaling Policy | Scales out when Memory exceeds 80% |
 
 > 📸 **AWS Console Screenshot:**
-> ![AWS Console](./screenshots/aws-console.png)
+<img width="1636" height="568" alt="image" src="https://github.com/user-attachments/assets/ecf5c7d1-b245-4d6d-a5e2-bef478318da7" />
 
 ---
 
@@ -206,7 +207,8 @@ public_subnet_ids  = ["subnet-xxxxxxxxx", "subnet-xxxxxxxxx"]
 ```
 
 > 📸 **Deployment Screenshot:**
-> ![Deployment Output](./screenshots/deployment-output.png)
+<img width="707" height="207" alt="image" src="https://github.com/user-attachments/assets/20e012ce-be44-4ffd-a626-11a74ba1c9a8" />
+
 
 ---
 
@@ -224,7 +226,8 @@ The Nginx container responds with the default Nginx welcome page, confirming tha
 - The target group health checks are passing
 
 > 📸 **App Screenshot:**
-> ![Live App](./screenshots/app-live.png)
+<img width="1913" height="1002" alt="image" src="https://github.com/user-attachments/assets/29a05141-e433-46f7-820e-5824fb555243" />
+
 
 ---
 
@@ -242,7 +245,40 @@ You can observe the current running task count and scaling activity in the AWS C
 | Memory Scaling | ECS Memory Utilisation | 80% | 60 seconds | 300 seconds |
 
 > 📸 **Auto Scaling Screenshot:**
-> ![Auto Scaling](./screenshots/autoscaling.png)
+<img width="1666" height="676" alt="image" src="https://github.com/user-attachments/assets/47b213d2-e15e-41f1-8d85-d0722455dc73" />
+<img width="1917" height="576" alt="image" src="https://github.com/user-attachments/assets/c98cad02-c4f2-4382-be94-f3c49f4bcb59" />
+
+
+---
+## 🐳 Fargate Validation
+
+AWS Fargate removes the need to manage any underlying EC2 instances. The ECS service runs tasks entirely on serverless compute — no servers to patch, provision, or maintain.
+
+This was validated through the AWS Console showing tasks running directly on Fargate infrastructure.
+
+### ✅ Fargate Tasks Running
+
+Navigate to **ECS → Clusters → `myapp-cluster` → Tasks tab**
+
+Each task will show:
+- **Launch type:** `FARGATE`
+- **Status:** `RUNNING`
+- **Platform version:** `LATEST`
+
+> 📸 **Fargate Tasks Screenshot:**
+<img width="1908" height="708" alt="image" src="https://github.com/user-attachments/assets/d5979042-ac2f-49c4-b017-6f9018c41006" />
+
+
+### ✅ Fargate Capacity Providers
+
+Navigate to **ECS → Clusters → `myapp-cluster` → Cluster configuration tab**
+
+This confirms the mixed capacity strategy:
+- `FARGATE` — weight 70 (base: 1)
+- `FARGATE_SPOT` — weight 30
+
+> 📸 **Capacity Providers Screenshot:**
+<img width="1917" height="792" alt="image" src="https://github.com/user-attachments/assets/ca8b1897-f10c-4aed-a490-a559ae23b0bf" />
 
 ---
 
