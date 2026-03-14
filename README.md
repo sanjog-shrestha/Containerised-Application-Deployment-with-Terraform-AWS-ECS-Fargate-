@@ -10,12 +10,13 @@ The infrastructure includes:
 - Custom VPC with public subnets across 2 Availability Zones
 - Application Load Balancer (ALB) with health checks
 - ECS Fargate cluster with FARGATE and FARGATE_SPOT capacity providers
-- ECS task definition running Nginx via AWS ECR Public
+- ECS task definition running Nginx via **Amazon ECR private repository**
 - ECS service with desired count of 2 tasks
 - Auto scaling on CPU (70%) and Memory (80%) thresholds
 - IAM execution role with least-privilege permissions
 - CloudWatch log group with 30-day retention
 - Least-privilege security groups (ALB → ECS tasks)
+- **Amazon ECR private registry with vulnerability scanning and lifecycle policy**
 
 This project highlights serverless container orchestration, high availability design, automated scaling, and cloud-native DevOps practices.
 
@@ -48,7 +49,6 @@ Application Load Balancer (ALB)
 > 📸 **Architecture Screenshot:**
 <img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/ea19aa13-c49b-4f3e-a257-343ab845128d" />
 
-
 ---
 
 ## ☁️ AWS Deployment
@@ -68,13 +68,15 @@ Application Load Balancer (ALB)
 | HTTP Listener | Forwards port 80 traffic to the target group |
 | ECS Cluster | Fargate cluster with Container Insights enabled |
 | Capacity Providers | 70% FARGATE / 30% FARGATE_SPOT for cost optimisation |
-| ECS Task Definition | Fargate task: 512 CPU / 1024 MB, Nginx image |
+| ECS Task Definition | Fargate task: 512 CPU / 1024 MB, Nginx image from private ECR |
 | ECS Service | Runs 2 desired tasks across both public subnets |
-| IAM Execution Role | Allows ECS to pull images and write CloudWatch logs |
+| IAM Execution Role | Allows ECS to pull images from ECR and write CloudWatch logs |
 | CloudWatch Log Group | `/ecs/<project>` with 30-day log retention |
 | Auto Scaling Target | ECS service scaling between 2 and 6 tasks |
 | CPU Scaling Policy | Scales out when CPU exceeds 70% |
 | Memory Scaling Policy | Scales out when Memory exceeds 80% |
+| ECR Repository | Private container registry with vulnerability scanning on push |
+| ECR Lifecycle Policy | Retains 10 most recent images, expires older ones automatically |
 
 > 📸 **AWS Console Screenshot:**
 <img width="1636" height="568" alt="image" src="https://github.com/user-attachments/assets/ecf5c7d1-b245-4d6d-a5e2-bef478318da7" />
@@ -95,7 +97,8 @@ terraform-ecs-fargate/
 ├── ecs-task.tf            # IAM role, task definition, CloudWatch logs
 ├── ecs-services.tf        # ECS Fargate service and network config
 ├── autoscaling.tf         # App Auto Scaling for CPU and memory
-└── outputs.tf             # ALB DNS, app URL, ECS service name, VPC ID
+├── ecr.tf                 # ECR private repository, lifecycle policy, IAM pull policy
+└── outputs.tf             # ALB DNS, app URL, ECS service name, VPC ID, ECR outputs
 ```
 
 ### File Explanations
@@ -112,7 +115,8 @@ terraform-ecs-fargate/
 | `ecs-task.tf` | IAM execution role, CloudWatch log group, Fargate task definition |
 | `ecs-services.tf` | ECS service with 2 tasks, ALB integration, and lifecycle rules |
 | `autoscaling.tf` | Auto Scaling target (2–6 tasks), CPU and memory scaling policies |
-| `outputs.tf` | Outputs ALB DNS, app URL, ECS service name, VPC ID, and subnet IDs |
+| `ecr.tf` | Private ECR repository, vulnerability scanning, lifecycle policy, IAM pull policy |
+| `outputs.tf` | Outputs ALB DNS, app URL, ECS service name, VPC ID, subnet IDs, and ECR outputs |
 
 ---
 
@@ -153,6 +157,14 @@ Each layer only accepts traffic from the layer directly above it:
 
 All container logs are streamed to CloudWatch Logs under `/ecs/<project_name>` with a 30-day retention policy, and Container Insights is enabled on the cluster for metrics and performance monitoring.
 
+### 7️⃣ Amazon ECR Private Registry
+
+Container images are hosted in a **private Amazon ECR repository** instead of the public ECR registry. A new `ecr.tf` file creates the repository with automatic vulnerability scanning on every push, a lifecycle policy that retains only the 10 most recent images to control storage costs, and an inline IAM policy that grants the ECS execution role the exact four permissions needed to pull images — nothing more. The task definition in `ecs-task.tf` references the private repository URL dynamically via a Terraform resource reference, so no hardcoded URIs exist anywhere in the codebase.
+
+> 📸 **ECR Repository Console Screenshot:**
+<!-- TO ADD: Go to AWS Console → ECR → Repositories → your-project-repo → take a screenshot showing the repository → upload to GitHub and replace this line with the img tag -->
+> ⚠️ *Replace this line with your ECR repository screenshot after applying infrastructure*
+
 ---
 
 ## 🚀 Deployment Instructions
@@ -160,7 +172,8 @@ All container logs are streamed to CloudWatch Logs under `/ecs/<project_name>` w
 ### Prerequisites
 - [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.14.0
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured with valid credentials
-- AWS account with ECS, EC2, IAM, and CloudWatch permissions
+- [Docker](https://docs.docker.com/get-docker/) installed locally for building and pushing images
+- AWS account with ECS, EC2, IAM, CloudWatch, and **ECR** permissions
 
 ### Steps
 
@@ -192,6 +205,21 @@ terraform apply -var="aws_region=eu-west-2" -var="project_name=myapp"
 
 > ⚠️ ECS service startup takes approximately **2–3 minutes** for tasks to reach a healthy state.
 
+**6. Push your image to ECR**
+
+After `terraform apply`, the output `ecr_push_commands` prints the exact commands to authenticate and push:
+
+```bash
+aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin <ecr-repo-url>
+docker build -t myapp .
+docker tag myapp:latest <ecr-repo-url>:latest
+docker push <ecr-repo-url>:latest
+```
+
+> 📸 **ECR Push Screenshot:**
+<!-- TO ADD: Run the ecr_push_commands output in your terminal and take a screenshot showing a successful push → upload to GitHub and replace this line with the img tag -->
+> ⚠️ *Replace this line with your ECR push screenshot*
+
 ---
 
 ## 🔍 Terraform Deployment Output
@@ -199,16 +227,17 @@ terraform apply -var="aws_region=eu-west-2" -var="project_name=myapp"
 After a successful `terraform apply`, you will see:
 
 ```
-alb_dns_name       = "myapp-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
-app_url            = "http://myapp-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
-ecs_service_name   = "myapp-service"
-vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"
-public_subnet_ids  = ["subnet-xxxxxxxxx", "subnet-xxxxxxxxx"]
+alb_dns_name         = "myapp-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
+app_url              = "http://myapp-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
+ecs_service_name     = "myapp-service"
+vpc_id               = "vpc-xxxxxxxxxxxxxxxxx"
+public_subnet_ids    = ["subnet-xxxxxxxxx", "subnet-xxxxxxxxx"]
+ecr_repository_url   = "123456789012.dkr.ecr.eu-west-2.amazonaws.com/myapp-repo"
+ecr_push_commands    = <<commands to authenticate, tag and push>>
 ```
 
 > 📸 **Deployment Screenshot:**
 <img width="707" height="207" alt="image" src="https://github.com/user-attachments/assets/20e012ce-be44-4ffd-a626-11a74ba1c9a8" />
-
 
 ---
 
@@ -227,7 +256,6 @@ The Nginx container responds with the default Nginx welcome page, confirming tha
 
 > 📸 **App Screenshot:**
 <img width="1913" height="1002" alt="image" src="https://github.com/user-attachments/assets/29a05141-e433-46f7-820e-5824fb555243" />
-
 
 ---
 
@@ -248,13 +276,11 @@ You can observe the current running task count and scaling activity in the AWS C
 <img width="1666" height="676" alt="image" src="https://github.com/user-attachments/assets/47b213d2-e15e-41f1-8d85-d0722455dc73" />
 <img width="1917" height="576" alt="image" src="https://github.com/user-attachments/assets/c98cad02-c4f2-4382-be94-f3c49f4bcb59" />
 
-
 ---
+
 ## 🐳 Fargate Validation
 
 AWS Fargate removes the need to manage any underlying EC2 instances. The ECS service runs tasks entirely on serverless compute — no servers to patch, provision, or maintain.
-
-This was validated through the AWS Console showing tasks running directly on Fargate infrastructure.
 
 ### ✅ Fargate Tasks Running
 
@@ -267,7 +293,6 @@ Each task will show:
 
 > 📸 **Fargate Tasks Screenshot:**
 <img width="1908" height="708" alt="image" src="https://github.com/user-attachments/assets/d5979042-ac2f-49c4-b017-6f9018c41006" />
-
 
 ### ✅ Fargate Capacity Providers
 
@@ -289,9 +314,10 @@ This confirms the mixed capacity strategy:
 | Networking | Amazon VPC, Public Subnets, IGW, Route Tables |
 | Load Balancing | AWS Application Load Balancer (ALB) |
 | Container Orchestration | AWS ECS Fargate |
-| Container Image | Nginx (AWS ECR Public) |
+| Container Registry | Amazon ECR (Private) |
+| Container Image | Nginx (hosted in private ECR repository) |
 | Auto Scaling | AWS Application Auto Scaling |
-| IAM | ECS Task Execution Role |
+| IAM | ECS Task Execution Role with ECR pull policy |
 | Observability | Amazon CloudWatch Logs + Container Insights |
 | Infrastructure Provisioning | Terraform >= 1.14.0 |
 | AWS Provider | hashicorp/aws ~> 5.0 |
@@ -310,6 +336,9 @@ This confirms the mixed capacity strategy:
 - Least-privilege security group chaining (ALB → ECS tasks)
 - Container Insights for cluster-level observability
 - Terraform resource dependency management across multiple files
+- **Amazon ECR private registry with vulnerability scanning and lifecycle management**
+- **Dynamic Terraform resource references to eliminate hardcoded image URIs**
+- **Least-privilege inline IAM policy for private ECR image pulls**
 
 ---
 
@@ -323,6 +352,8 @@ This project demonstrates the ability to:
 - Structure Terraform configurations logically across multiple files
 - Apply cloud security best practices at the network and IAM level
 - Integrate container logging with CloudWatch from infrastructure code
+- **Host container images privately in Amazon ECR with automated scanning**
+- **Manage container image lifecycle and storage costs via ECR lifecycle policies**
 
 ---
 
@@ -333,7 +364,7 @@ Potential enhancements:
 - [ ] HTTPS with AWS Certificate Manager + ALB HTTPS listener
 - [ ] Custom domain with Route 53
 - [ ] Private subnets with NAT Gateway for ECS tasks
-- [ ] Amazon ECR for private container image hosting
+- [x] ~~Amazon ECR for private container image hosting~~ ✅ Completed
 - [ ] CI/CD pipeline to build and push images with GitHub Actions
 - [ ] Terraform remote state with S3 + DynamoDB locking
 - [ ] CloudWatch alarms and SNS notifications for scaling events

@@ -11,8 +11,8 @@ resource "aws_ecs_service" "app" {
       aws_subnet.public_1.id,
       aws_subnet.public_2.id
     ]
-    security_groups = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = true 
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
 
   load_balancer {
