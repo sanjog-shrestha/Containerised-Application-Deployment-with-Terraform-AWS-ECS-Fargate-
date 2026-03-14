@@ -1,34 +1,42 @@
-// Key outputs for accessing and observing the deployed infrastructure
+# Key outputs for accessing and observing the deployed infrastructure
+
+# DNS hostname of the Application Load Balancer
 output "alb_dns_name" {
   description = "DNS name of the Load Balancer"
   value       = aws_lb.main.dns_name
 }
 
+# Full HTTP URL to access the application in a browser
 output "app_url" {
   description = "Full URL to access your application"
   value       = "http://${aws_lb.main.dns_name}"
 }
 
+# Name of the ECS service (useful for CLI and console)
 output "ecs_service_name" {
   description = "Name of the ECS Service"
   value       = aws_ecs_service.app.name
 }
 
+# ID of the main VPC
 output "vpc_id" {
   description = "ID of the VPC"
   value       = aws_vpc.main.id
 }
 
+# IDs of the two public subnets (one per AZ)
 output "public_subnet_ids" {
   description = "IDs of the public subnets"
   value       = [aws_subnet.public_1.id, aws_subnet.public_2.id]
 }
 
+# ECR repository URL for tagging and pushing Docker images
 output "ecr_repository_url" {
   description = "ECR repository URL - use this to tag & push your image"
   value       = aws_ecr_repository.app.repository_url
 }
 
+# Copy-paste commands to log in to ECR, build, tag, and push the image
 output "ecr_push_commands" {
   description = "Ready-to-use commands to authenticate, tag, and push your image to ECR"
   value       = <<-EOT

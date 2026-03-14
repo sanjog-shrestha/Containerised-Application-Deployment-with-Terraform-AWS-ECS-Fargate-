@@ -1,9 +1,10 @@
-// Security group for the public Application Load Balancer
+# Security group for the public Application Load Balancer
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
   description = "Controls traffic to the Load Balancer"
   vpc_id      = aws_vpc.main.id
 
+  # Allow HTTP from anywhere (public web traffic)
   ingress {
     from_port   = 80
     to_port     = 80
@@ -11,6 +12,7 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Allow all outbound traffic (e.g. to ECS, internet)
   egress {
     from_port   = 0
     to_port     = 0
@@ -19,12 +21,13 @@ resource "aws_security_group" "alb" {
   }
 }
 
-// Security group for ECS tasks receiving traffic from the ALB
+# Security group for ECS tasks; only the ALB can send traffic to them
 resource "aws_security_group" "ecs_tasks" {
   name        = "${var.project_name}-ecs-tasks-sg"
   description = "Controls traffic to ECS containers"
   vpc_id      = aws_vpc.main.id
 
+  # Allow HTTP only from the ALB security group
   ingress {
     from_port       = 80
     to_port         = 80
@@ -32,6 +35,7 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  # Allow all outbound (e.g. ECR, CloudWatch, external APIs)
   egress {
     from_port   = 0
     to_port     = 0

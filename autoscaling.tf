@@ -1,3 +1,4 @@
+# Scaling target: ECS service task count between 2 and 6
 resource "aws_appautoscaling_target" "ecs" {
   max_capacity       = 6
   min_capacity       = 2
@@ -6,6 +7,7 @@ resource "aws_appautoscaling_target" "ecs" {
   service_namespace  = "ecs"
 }
 
+# Scale out/in based on average CPU utilization (target 70%)
 resource "aws_appautoscaling_policy" "cpu_scaling" {
   name               = "cpu-scaling-policy"
   policy_type        = "TargetTrackingScaling"
@@ -13,6 +15,7 @@ resource "aws_appautoscaling_policy" "cpu_scaling" {
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs.service_namespace
 
+  # Target-tracking: keep CPU near 70%; cooldowns avoid thrashing
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
@@ -23,6 +26,7 @@ resource "aws_appautoscaling_policy" "cpu_scaling" {
   }
 }
 
+# Scale out/in based on average memory utilization (target 80%)
 resource "aws_appautoscaling_policy" "memory_scaling" {
   name               = "memory-scaling-policy"
   policy_type        = "TargetTrackingScaling"
@@ -30,6 +34,7 @@ resource "aws_appautoscaling_policy" "memory_scaling" {
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
   service_namespace  = aws_appautoscaling_target.ecs.service_namespace
 
+  # Target-tracking: keep memory near 80%; cooldowns avoid thrashing
   target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageMemoryUtilization"

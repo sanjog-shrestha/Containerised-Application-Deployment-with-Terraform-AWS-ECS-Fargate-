@@ -1,4 +1,4 @@
-// IAM trust policy allowing ECS tasks to assume the execution role
+# IAM trust policy allowing ECS tasks to assume the execution role
 data "aws_iam_policy_document" "ecs_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -10,25 +10,25 @@ data "aws_iam_policy_document" "ecs_assume_role" {
   }
 }
 
-// IAM role used by ECS tasks to pull images and write logs
+# IAM role used by ECS tasks to pull images and write logs
 resource "aws_iam_role" "ecs_execution_role" {
   name               = "${var.project_name}-ecs-execution-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
 }
 
-// Attach standard execution policy to the ECS execution role
+# Attach standard execution policy to the ECS execution role
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
   role       = aws_iam_role.ecs_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-// CloudWatch Logs group for ECS task logs
+# CloudWatch Logs group for ECS task logs (30-day retention)
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/ecs/${var.project_name}"
   retention_in_days = 30
 }
 
-// Fargate task definition for the application
+# Fargate task definition for the application (0.5 vCPU, 1 GB memory)
 resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_name}-task"
   network_mode             = "awsvpc"
@@ -37,6 +37,7 @@ resource "aws_ecs_task_definition" "app" {
   memory                   = 1024
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
 
+  # Single container: ECR image, port 80, logs to CloudWatch
   container_definitions = jsonencode([
     {
       name      = "${var.project_name}-container"
