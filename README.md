@@ -162,9 +162,7 @@ All container logs are streamed to CloudWatch Logs under `/ecs/<project_name>` w
 Container images are hosted in a **private Amazon ECR repository** instead of the public ECR registry. A new `ecr.tf` file creates the repository with automatic vulnerability scanning on every push, a lifecycle policy that retains only the 10 most recent images to control storage costs, and an inline IAM policy that grants the ECS execution role the exact four permissions needed to pull images — nothing more. The task definition in `ecs-task.tf` references the private repository URL dynamically via a Terraform resource reference, so no hardcoded URIs exist anywhere in the codebase.
 
 > 📸 **ECR Repository Console Screenshot:**
-<!-- TO ADD: Go to AWS Console → ECR → Repositories → your-project-repo → take a screenshot showing the repository → upload to GitHub and replace this line with the img tag -->
-> ⚠️ *Replace this line with your ECR repository screenshot after applying infrastructure*
-
+<img width="1708" height="242" alt="Image" src="https://github.com/user-attachments/assets/bacf39dd-77bc-4f84-a4b5-fa8e140a74e3" />
 ---
 
 ## 🚀 Deployment Instructions
