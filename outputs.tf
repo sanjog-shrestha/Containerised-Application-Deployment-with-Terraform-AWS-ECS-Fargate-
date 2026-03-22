@@ -1,30 +1,45 @@
-# Key outputs for accessing and observing the deployed infrastructure
+# -----------------------------------------------------------------------------
+# Outputs
+# -----------------------------------------------------------------------------
 
-# DNS hostname of the Application Load Balancer
+# Primary application URL — HTTPS via CloudFront, fully trusted certificate.
+# No custom domain, no browser warning, no self-signed cert required.
+output "app_url" {
+  description = "HTTPS URL via CloudFront — trusted certificate, no browser warning"
+  value       = "https://${aws_cloudfront_distribution.app.domain_name}"
+}
+
+# Raw CloudFront domain name — useful for DNS records or CI/CD pipelines
+output "cloudfront_domain" {
+  description = "CloudFront distribution domain name"
+  value       = aws_cloudfront_distribution.app.domain_name
+}
+
+# CloudFront distribution ID — needed to trigger cache invalidations
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.app.id
+}
+
+# ALB DNS name — internal origin used by CloudFront, not for direct access
 output "alb_dns_name" {
-  description = "DNS name of the Load Balancer"
+  description = "ALB DNS name — internal origin, use app_url to access the app"
   value       = aws_lb.main.dns_name
 }
 
-# Full HTTP URL to access the application in a browser
-output "app_url" {
-  description = "Full URL to access your application"
-  value       = "http://${aws_lb.main.dns_name}"
-}
-
-# Name of the ECS service (useful for CLI and console)
+# ECS service name — useful for AWS CLI queries and console navigation
 output "ecs_service_name" {
   description = "Name of the ECS Service"
   value       = aws_ecs_service.app.name
 }
 
-# ID of the main VPC
+# VPC ID
 output "vpc_id" {
   description = "ID of the VPC"
   value       = aws_vpc.main.id
 }
 
-# IDs of the two public subnets (one per AZ)
+# Public subnet IDs
 output "public_subnet_ids" {
   description = "IDs of the public subnets"
   value       = [aws_subnet.public_1.id, aws_subnet.public_2.id]
@@ -32,13 +47,13 @@ output "public_subnet_ids" {
 
 # ECR repository URL for tagging and pushing Docker images
 output "ecr_repository_url" {
-  description = "ECR repository URL - use this to tag & push your image"
+  description = "ECR repository URL - use this to tag and push your image"
   value       = aws_ecr_repository.app.repository_url
 }
 
-# Copy-paste commands to log in to ECR, build, tag, and push the image
+# Ready-to-use ECR push commands
 output "ecr_push_commands" {
-  description = "Ready-to-use commands to authenticate, tag, and push your image to ECR"
+  description = "Commands to authenticate, tag, and push your image to ECR"
   value       = <<-EOT
     aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.app.repository_url}
     docker build -t ${var.project_name} .
@@ -46,4 +61,3 @@ output "ecr_push_commands" {
     docker push ${aws_ecr_repository.app.repository_url}:latest
   EOT
 }
-
