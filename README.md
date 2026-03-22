@@ -273,7 +273,8 @@ The Nginx container responds with the default Nginx welcome page, confirming tha
 - No browser security warning is shown
 
 > 📸 **App Screenshot:**
-<img width="1913" height="1002" alt="image" src="https://github.com/user-attachments/assets/29a05141-e433-46f7-820e-5824fb555243" />
+<img width="1918" height="902" alt="image" src="https://github.com/user-attachments/assets/d29c0155-b187-4ee3-847a-d67da2eb1560" />
+
 
 ---
 
@@ -292,6 +293,7 @@ To confirm the redirect is working:
 curl -I http://xxxxxxxxxxxx.cloudfront.net
 # Expected: HTTP/2 200 or redirect to HTTPS
 ```
+<img width="1891" height="277" alt="image" src="https://github.com/user-attachments/assets/5ecab889-0be7-476d-b5bd-ee321f616f4b" />
 
 ---
 
